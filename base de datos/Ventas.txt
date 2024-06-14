@@ -1,0 +1,76 @@
+-- Crear Tabla Ventas
+CREATE TABLE Ventas (
+    IdVenta INT PRIMARY KEY IDENTITY,
+    DUI VARCHAR(10),
+    FechaEmision DATE
+);
+
+-- Crear DetalleVentas
+CREATE TABLE DetalleVentas (
+    IdDetalle INT PRIMARY KEY IDENTITY,
+    IdVenta INT,
+    IdProducto INT,
+    Cantidad INT,
+    PrecioTotal DECIMAL(9,2),
+    FOREIGN KEY (IdVenta) REFERENCES Ventas(IdVenta),
+    FOREIGN KEY (IdProducto) REFERENCES Productos(IdProducto)
+);
+
+-- Crear   Facturas
+CREATE TABLE Facturas (
+    IdFactura INT PRIMARY KEY IDENTITY,
+    IdVenta INT,
+    SubTotal DECIMAL(9,2),
+    IVA DECIMAL(9,2),
+    Total DECIMAL(9,2),
+    FOREIGN KEY (IdVenta) REFERENCES Ventas(IdVenta)
+);
+
+
+----------------SP_GenerarVenta--------------------------------------
+CREATE PROCEDURE GenerarVenta
+    @p_DUI VARCHAR(10),
+    @p_IdProducto INT,
+    @p_Cantidad INT,
+    @p_PrecioTotal DECIMAL(9,2),
+    @p_SubTotal DECIMAL(9,2),
+    @p_IVA DECIMAL(9,2),
+    @p_Total DECIMAL(9,2),
+    @p_IdVenta INT OUTPUT -- Parámetro de salida para el IdVenta
+AS
+BEGIN
+    -- Declarar variables para almacenar los IDs generados
+    DECLARE @v_IdVenta INT;
+    DECLARE @v_IdDetalle INT;
+    DECLARE @v_IdFactura INT;
+
+    -- Obtener la fecha actual
+    DECLARE @v_FechaEmision DATE = GETDATE();
+
+    -- Insertar datos en la tabla Ventas
+    INSERT INTO Ventas (DUI, FechaEmision)
+    VALUES (@p_DUI, @v_FechaEmision);
+
+    -- Obtener el ID de la venta recién insertada
+    SET @v_IdVenta = SCOPE_IDENTITY();
+
+    -- Insertar datos en la tabla DetalleVentas
+    INSERT INTO DetalleVentas (IdVenta, IdProducto, Cantidad, PrecioTotal)
+    VALUES (@v_IdVenta, @p_IdProducto, @p_Cantidad, @p_PrecioTotal);
+
+    -- Obtener el ID del detalle de venta recién insertado
+    SET @v_IdDetalle = SCOPE_IDENTITY();
+
+    -- Insertar datos en la tabla Facturas
+    INSERT INTO Facturas (IdVenta, SubTotal, IVA, Total)
+    VALUES (@v_IdVenta, @p_SubTotal, @p_IVA, @p_Total);
+
+    -- Obtener el ID de la factura recién insertada
+    SET @v_IdFactura = SCOPE_IDENTITY();
+
+    -- Asignar el valor de IdVenta al parámetro de salida
+    SET @p_IdVenta = @v_IdVenta;
+
+    -- Devolver solo el IdVenta como parámetro de salida
+    SELECT @p_IdVenta AS IdVenta;
+END
